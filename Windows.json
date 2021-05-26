@@ -6,7 +6,8 @@
             {
             "type": "string",
             "defaultValue": "winadmin",
-            "metadata": {"description": "Administrator username for the Virtual Machine."}
+            "metadata": {
+                "description": "Administrator username for the Virtual Machine."}
             },
         "adminPassword":
              {
@@ -41,7 +42,7 @@
         "vmLocation": 
             {
             "type": "string",
-            "allowedValues" : [ "westeurope","eastus2","northeurope","centralus"],
+            "allowedValues" : [ "westeurope","eastus2","northeurope","centralus","eastus"],
             "metadata": 
                 {
                 "description": "Location or datacenter where the VM will be placed.",
@@ -111,13 +112,15 @@
 
     "functions": [],
     "variables": {
+        "subscription_name": "[subscription().displayName]",
         "Publicip_name": "[concat(parameters('vmName'),'-pubip1')]",
         "nsg_name": "[concat(parameters('vmName'),'-nsg1')]",
         "Vnic_name": "[concat(parameters('vmName'),'-vnic1')]",
         "osDisk": "[concat(parameters('vmName'),'-osDisk')]",
         "dataDisk": "[concat(parameters('vmName'),'-dataDisk1')]",
-        "vnetID": "[resourceId(parameters('existingvNetResourceGroup'), 'Microsoft.Network/virtualNetworks', parameters('existingvNetName'))]",
-        "SubnetID": "[concat(variables('vnetID'),'/subnets/', parameters('subnetName'))]"
+        "SubnetID": "[concat('/subscriptions/d53c0dd5-dc5b-41fb-9e3c-327d1fc8e5b6/resourceGroups/',parameters('existingvNetResourceGroup'),'/providers/Microsoft.Network/virtualNetworks/',trim(parameters('existingvNetName')),'/subnets/',trim(parameters('subnetName')))]",
+        "vnetID": "[concat('/subscriptions/',trim(variables('subscription_name')),'/resourceGroups/',parameters('existingvNetResourceGroup'),'/providers/Microsoft.Network/virtualNetworks/',parameters('existingvNetName'))]",
+        "location": "[parameters('vmLocation')]"
     },
     "resources": [
 {
@@ -125,7 +128,7 @@
     "name": "[variables('Publicip_name')]",
     "type": "Microsoft.Network/publicIPAddresses",
     "apiVersion": "2019-11-01",
-    "location": "[resourceGroup().location]",
+    "location": "[variables('location')]",
     "properties": {
         "publicIPAllocationMethod": "Dynamic"
     }
@@ -134,7 +137,7 @@
     "name": "[variables('nsg_name')]",
     "type": "Microsoft.Network/networkSecurityGroups",
     "apiVersion": "2018-08-01",
-    "location": "[resourceGroup().location]",
+    "location": "[variables('location')]",
     "properties": {
         "securityRules": [
             {
@@ -158,10 +161,9 @@
     "name": "[variables('Vnic_name')]",
     "type": "Microsoft.Network/networkInterfaces",
     "apiVersion": "2019-11-01",
-    "location": "[resourceGroup().location]",
+    "location": "[variables('location')]",
     "dependsOn": [
-        "[resourceId('Microsoft.Network/publicIPAddresses', variables('Publicip_name'))]",
-        "[variables('vnetID')]"
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('Publicip_name'))]"
     ],
 
     "properties": {
@@ -186,7 +188,7 @@
     "name": "[parameters('vmName')]",
     "type": "Microsoft.Compute/virtualMachines",
     "apiVersion": "2019-07-01",
-    "location": "[parameters('vmLocation')]",
+    "location": "[variables('location')]",
     "dependsOn": [
         "[resourceId('Microsoft.Network/networkInterfaces', variables('Vnic_name'))]"
     ],
