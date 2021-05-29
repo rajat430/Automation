@@ -1,0 +1,129 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "VnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Enter Vnet Name"
+            }
+        },
+        "VnetAddressSpace": {
+            "type": "string",
+            "metadata": {
+                "description": "Enter Vnet Address space"
+            }
+        },
+        "SubnetName1": {
+            "type": "string",
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "SubnetAddressSpace1": {
+            "type": "string",
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "Subnetname2": {
+            "type": "string",
+            "metadata": {
+                "description": "description"
+            }
+        },
+        "SubnetAddressSpace2": {
+            "type": "string",
+            "metadata": {
+                "description": "description"
+            }
+        }
+    },
+    "functions": [],
+    "variables": {
+        "VnetLocation": "[resourceGroup().location]"
+    },
+    "resources": [
+        {
+            "name": "[parameters('VnetName')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2019-11-01",
+            "location": "[variables('VnetLocation')]",
+            "tags": {
+                "displayName": "[parameters('VnetName')]"
+            },
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('VnetAddressSpace')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('SubnetName1')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('SubnetAddressSpace1')]"
+                        }
+                    },
+                    {
+                        "name": "[parameters('Subnetname2')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('SubnetAddressSpace2')]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups',concat(parameters(concat('SubnetName',copyIndex())), '-NSG',copyIndex()))]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[concat(parameters(concat('SubnetName',copyIndex())),'-NSG',copyIndex())]",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2019-11-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('VnetName'), parameters(concat('SubnetName',copyIndex())))]"
+            ],
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "Allow_RDP_Inbound",
+                        "properties": {
+                            "description": "description",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "3389",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 3000,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "Allow_Vnet_Inboud",
+                        "properties": {
+                            "description": "description",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "VirtualNetwork",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 65000,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "copy": {
+                "count": 2,
+                "mode": "Parallel",
+                "name": "Copynsg"
+            }
+        }
+        
+    ],
+    "outputs": {}
+}
